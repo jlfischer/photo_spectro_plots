@@ -1,7 +1,7 @@
 PRO plot_pixels_all
 
 ;Test for plotting each pixel separately, problems with contours
-;Hola this is working!!
+;Hola this is working!! New branch
 
 ;dir='/home/helenado/MANGA/data/Ell/all/'
 
