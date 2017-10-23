@@ -1,7 +1,7 @@
 PRO plot_pixels_all
 
 ;Test for plotting each pixel separately, problems with contours
-;input is the same as for plot_contour_profile
+;Hola this is working!!
 
 ;dir='/home/helenado/MANGA/data/Ell/all/'
 
