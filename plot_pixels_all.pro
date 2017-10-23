@@ -1,21 +1,19 @@
 PRO plot_pixels_all
 
-;Test for plotting each pixel separately, problems with contours
-;Hola this is working!!
+;Purpose:
+;Plotting MANGA vdisp & stellar velocity (cubes and radial profiles)
 
-;dir='/home/helenado/MANGA/data/Ell/all/'
 
 dir='/data3/MANGA/MPL-5/'
 type='LOGCUBE'
 
+;userdefined symbol
 t = findgen(21)/20.0 * 2.0 * !Pi
 usersym, cos(t)*3., sin(t)*3., /fill
 pix_size=0.5
 
-;table with galaxy info
+;table with galaxy photometry
 tab=mrdfits('/home/helenado/MANGA/catalogues/tab_ser_r_manga_dr14.fits', 1, hdr_tab)
-
-
 
 
 ;=====================cilce begins================
@@ -71,7 +69,6 @@ p4=[0.59,0.07,0.92,0.32]
 ;=================================================================================
 
 
-
 print, 'Empieza plot'
 print, file
 ;stop
@@ -88,9 +85,7 @@ device,xsize=20.0,ysize=23.0,xoffset=0.,yoffset=4.0,/color
 
 ;Definitions
 ;----------------
-ok=where(gal.veldisp gt mean(gal.veldisp)-3*stdev(gal.veldisp) and gal.veldisp lt mean(gal.veldisp)+3*stdev(gal.veldisp) and gal.st_vel ne min(gal.st_vel)
-;if flag(i) eq 3 then ok=where(gal.veldisp gt mean(gal.veldisp)-3*stdev(gal.veldisp) and gal.veldisp lt mean(gal.veldisp)+3*stdev(gal.veldisp) and gal.dis lt re)
-
+ok=where(gal.veldisp gt mean(gal.veldisp)-3*stdev(gal.veldisp) and gal.veldisp lt mean(gal.veldisp)+3*stdev(gal.veldisp) and gal.veldisp lt 400. and gal.st_vel ne min(gal.st_vel))
 
 print, 'ok Veldisp array'
 help, gal.veldisp
@@ -99,8 +94,6 @@ help, ok
 
 ;color vdisp
 ;---------------------
-
-
 xplot=gal(ok).ra
 yplot=gal(ok).dec
 zplot=gal(ok).veldisp
@@ -168,17 +161,10 @@ xyouts, [min(xplot),min(xplot)],[max(yplot),max(yplot)], 'z='+strcompress(tab(i)
 ;stellar velocity
 ;=================================
 
-
 ;Definitions
 ;----------------
 bad=where(gal.st_vel eq min(gal.st_vel))  ; min values are too small! Probably associated to error
 good=where(gal.st_vel ne min(gal.st_vel))
-
-;if flag(i) eq 3 then begin 
-;   bad=where(gal.st_vel eq min(gal.st_vel) or gal.dis lt re)
-;   good=where(gal.st_vel ne min(gal.st_vel) and gal.dis lt re)
-;endif
-
 
 xplot=gal(good).ra
 yplot=gal(good).dec
@@ -223,7 +209,6 @@ yfit= gal(ok).veldisp
 
 ;fits to vdisp radial profiles
 ;--------------------------------------
-
 ;pixels mean
 meanbin,xfit, yfit,0,ycut1=20,ycut2=300,xmin=0.1,xmax=10.,xbin=0.8,xmean=xmean,ymean=ymean,rmsmeant=rmsmean,weight=weight,nelem=nelem,sym=8,nmax=1,zbin=zbin,rms68=yper68,rms32=yper32,rms95=yper95,rms5=yper5,/no2sigmacontour,rmsmeanm=rmsmeanm,rmsmeanp=rmsmeanp, /noshow
 
@@ -270,7 +255,7 @@ xyouts, 0.52*[re_kpc, re_kpc], [ylim2*0.98],'0.5 Re',  charthick=3, charsize=1, 
 if  1.02*[re_kpc] lt (max(gal.dis_kpc)+1)  then  xyouts, 1.02*[re_kpc, re_kpc], [ylim2*0.98],'Re',  charthick=3, charsize=1,  Color=cgColor('Dark Grey'),  Orientation=-90.0
 if  2.02*[re_kpc] lt  (max(gal.dis_kpc)+1) then  xyouts, 2.02*[re_kpc, re_kpc], [ylim2*0.98],'2 Re',  charthick=3, charsize=1,  Color=cgColor('Dark Grey'),  Orientation=-90.0
 
-; Slope values
+; Print Slope values
 ;-----------------
 delta=max(yfit)-min(yfit)
 xyouts, [min(xfit),min(xfit)],[max(yfit)+0.45*delta,max(yfit)+0.45*delta], 'Slope pix='+strcompress(STRING(lin_cte(1), FORMAT='(F6.3)'), /remove_all)+'',charthick=3, charsize=1.0
@@ -286,7 +271,6 @@ axis,xaxis=1,xr=trange,xst=1, xtitle='Distance (arcsec)',charsize=1.0
 ;Stellar Velocity
 ;=================================
 
-;stop
 
 xfit=gal(good).dis_kpc
 yfit=st_vel_corr(good)
