@@ -2,6 +2,7 @@ PRO plot_pixels_all
 
 ;Purpose:
 ;Plotting MANGA vdisp & stellar velocity (cubes and radial profiles)
+;Written by HDS on 11/2017
 
 dir='/data3/MANGA/MPL-5/'
 type='LOGCUBE'
@@ -104,11 +105,10 @@ print, '============'
 
 
 set_plot,'ps'
- 
 device,filename='/data3/MANGA/MPL-5/plots/all/offset/radial_profile_'+file+'.ps'
 device,xsize=20.0,ysize=20.0,xoffset=0.,yoffset=4.0,/color
 
-
+;set_plot, 'X'
 ;===================
 ;vdisp
 ;===================
@@ -152,10 +152,11 @@ vcol=zplot*m+r
 
 ;pixel size
 pix_size=0.4
+chs=0.9
 
 ;PLOT
 ;------------------------
-plot, xplot, yplot, psym=8,xtit='dis RA [arcsec]',ytit='dis Dec [arcsec]',xr=[xlim1, xlim2],yr=[ylim1, ylim2],xstyle=9,ystyle=9,XTICKFORMAT='(F5.1)',position=p1,charsize=0.65,  /nodata , /noerase
+plot, xplot, yplot, psym=8,xtit='arcsec',ytit='arcsec',xr=[xlim1, xlim2],yr=[ylim1, ylim2],xstyle=9,ystyle=9,XTICKFORMAT='(F5.1)',position=p1,charsize=chs,  /nodata , /noerase
 
 ;plot all pixels
 cgLoadct,0
@@ -176,10 +177,21 @@ cgLoadct,0
 oplot, [0, 0], [0, 0], psym=7, thick=3, symsize=2, col=0
 
 
+;N-E arrow
+width=(xlim1-xlim2)/2
+yarr=width*0.7
+xarr=-yarr
+
+cgarrow, xarr, yarr, xarr, yarr + 0.2*width, hsize=200, /data , thick=5, hthick=5
+cgarrow, xarr, yarr, xarr + 0.2*width, yarr, hsize=250., /data , thick=5
+xyouts, [xarr - 0.1*width, xarr - 0.1*width], [yarr + 0.1*width, yarr + 0.1*width], 'N', charsize=chs, charthick=2
+xyouts, [xarr + 0.1*width, xarr + 0.1*width], [yarr - 0.1*width, yarr - 0.1*width], 'E', charsize=chs, charthick=2
+
+
 ;Contours
 cgLoadct,0
 if re gt 0 then begin
-cgContour, gal(ok).dis, xplot, yplot, /irregular, Color=cgColor('Dark Green'),  LEVELS=cont_vect ,xtit='',ytit='',xr=[xlim1, xlim2],yr=[ylim1, ylim2],xstyle=1,ystyle=1,XTICKFORMAT='(F5.1)',position=p1,charsize=0.65,  /noerase
+cgContour, gal(ok).dis, xplot, yplot, /irregular, Color=cgColor('Dark Green'),  LEVELS=cont_vect ,xtit='',ytit='',xr=[xlim1, xlim2],yr=[ylim1, ylim2],xstyle=1,ystyle=1,XTICKFORMAT='(F5.1)',position=p1,charsize=chs,  /noerase
 endif
 
 
@@ -189,7 +201,7 @@ endif
 cgLoadct,0
 xyouts, [xlim1, xlim1],[ylim2*1.1, ylim2*1.1], 'ID_Manga='+strcompress(tab(i).plateifu, /remove_all)+'', charthick=3, charsize=1
 xyouts, [xlim1, xlim1],[ylim2*1.2, ylim2*1.2] , 'Galcount='+strcompress(STRING(tab(i).galcount, format='(I)'), /remove_all)+'', charthick=3, charsize=1
-xyouts, [0.5*xlim2, 0.5*xlim2],[ylim2*1.1, ylim2*1.1 ], 'R_eff='+strcompress(STRING(tab(i).r_tot, format='(F5.2)'), /remove_all)+' [arcsec]', charthick=3, charsize=1
+xyouts, [0.5*xlim2, 0.5*xlim2],[ylim2*1.1, ylim2*1.1 ], 'R_eff='+strcompress(STRING(tab(i).r_tot, format='(F5.2)'), /remove_all)+'', charthick=3, charsize=1
 xyouts, [0.5*xlim2, 0.5*xlim2],[ylim2*1.2, ylim2*1.2], 'z='+strcompress(STRING(tab(i).z, format='(F5.3)'), /remove_all)+'', charthick=3, charsize=1.0
 
 
@@ -216,7 +228,7 @@ vcol2=zplot*m+r
 
 ;PLOT
 ;----------------------
-plot, xplot, yplot, psym=1, xtit='delta RA (arcsec)',ytit='delta Dec (arcsec)',xr=[xlim1, xlim2],yr=[ylim1, ylim2],xstyle=9,ystyle=9,XTICKFORMAT='(F5.1)',position=p2,charsize=0.65, /noerase, /nodata
+plot, xplot, yplot, psym=1, xtit='arcsec',ytit='arcsec',xr=[xlim1, xlim2],yr=[ylim1, ylim2],xstyle=9,ystyle=9,XTICKFORMAT='(F5.1)',position=p2,charsize=chs, /noerase, /nodata
 
 ;all pixels
 cgLoadct,0
@@ -237,7 +249,7 @@ cgColorbar,divisions=11,range=[a, b],/vertical,tit='Stellar Velocity [km/s]',tlo
 ;contours
 cgLoadct,0
 if re gt 0 then begin
-cgContour, gal(good).dis,xplot, yplot, /irregular, Color=cgColor('Dark Green'),  LEVELS=cont_vect, thick=2,xtit='',ytit='',xr=[xlim1, xlim2],yr=[ylim1,ylim2],xstyle=1,ystyle=1,XTICKFORMAT='(F5.1)',position=p2,charsize=0.65, /noerase
+cgContour, gal(good).dis,xplot, yplot, /irregular, Color=cgColor('Dark Green'),  LEVELS=cont_vect, thick=2,xtit='',ytit='',xr=[xlim1, xlim2],yr=[ylim1,ylim2],xstyle=1,ystyle=1,XTICKFORMAT='(F5.1)',position=p2,charsize=chs, /noerase
 endif
 
 
@@ -256,28 +268,52 @@ cgLoadct,0
 oplot, [0, 0], [0, 0], psym=7, thick=3, symsize=2, col=0
 
 ;Label PA
-xyouts, [xlim1*0.9,xlim1*0.9],[ylim2*0.8, ylim2*0.8], 'PA='+strcompress(STRING(alpha, FORMAT='(I)'), /remove_all)+'', charthick=3, charsize=1.0, col=cgcolor('Navy')
+xyouts, [xlim1*0.9,xlim1*0.9],[ylim2*0.8, ylim2*0.8], 'PA='+strcompress(STRING(alpha, FORMAT='(I)'), /remove_all)+'', charthick=3, charsize=chs, col=cgcolor('Navy')
 
 
-;===================== Profiles =====================================================
+;=====================   Profiles   =================================================
 ;====================================================================================
-
-xfit=gal(ok).dis_kpc
-yfit= gal(ok).veldisp
-
-;fits to vdisp radial profiles
-;--------------------------------------
-;pixels mean
-meanbin,xfit, yfit,0,ycut1=1.,ycut2=300,xmin=0.1,xmax=10.,xbin=0.5,xmean=xmean,ymean=ymean,rmsmeant=rmsmean,weight=weight,nelem=nelem,sym=8,nmax=1,zbin=zbin,rms68=yper68,rms32=yper32,rms95=yper95,rms5=yper5,/no2sigmacontour,rmsmeanm=rmsmeanm,rmsmeanp=rmsmeanp, /noshow
-
-;pixels linear
-lin_cte=linfit(xfit, yfit)
 
 
 ;=================================
 ; velocity dispersion
 ;=================================
 
+xfit=gal(ok).dis_kpc
+yfit= gal(ok).veldisp
+
+
+;fits to vdisp radial profiles
+;--------------------------------------
+;pixels mean
+meanbin,xfit, yfit,0,ycut1=1.,ycut2=300,xmin=0.1,xmax=10.,xbin=0.5,xmean=xmean,ymean=ymean,rmsmeant=rmsmean,weight=weight,nelem=nelem,sym=8,nmax=1,zbin=zbin,rms68=yper68,rms32=yper32,rms95=yper95,rms5=yper5,/no2sigmacontour,rmsmeanm=rmsmeanm,rmsmeanp=rmsmeanp, /noshow
+
+
+;compute integrated vdisp
+r_vect=findgen(20)/2.+0.5
+vdisp_int=fltarr(n_elements(r_vect))
+
+for rr=0, n_elements(r_vect)-1 do begin
+  
+   p=where(gal.dis_kpc le r_vect[rr] and gal.st_vel ne min(gal.st_vel) and (gal.dis le 2*re))
+   
+   num=0
+   den=0
+   
+   if p(0) ne -1 then begin
+
+   num=total(gal(p).veldisp*gal(p).sn_gal)
+   den=total(gal(p).sn_gal)
+   vdisp_int(rr)=num/den
+
+   endif else begin   
+   vdisp_int(rr)=-999.
+   endelse
+endfor
+
+
+
+;define plot limits
 xlim1=min(xfit)-0.5
 xlim2=max(xfit)+1
 
@@ -289,6 +325,7 @@ ylim2=max(yfit)+10
 ;-----------------------------------
 plot,xfit, yfit, psym=8,xtit='',ytit='', xr=[xlim1, xlim2],yr=[ylim1, ylim2],xstyle=9,ystyle=1,XTICKFORMAT='(F4.1)',position=p3,charsize=1.0, /noerase, /nodata
 
+;plot mean
 POLYFILL, [xmean,reverse(xmean)] ,[yper68, reverse(yper32)], color=cgColor('RYB3')
 oplot,xfit, yfit, psym=8, symsize=0.1, color=cgColor('Gray')
 
@@ -299,13 +336,11 @@ oplot, xmean, ymean-rmsmeanm, line=2, col=cgColor('RYB2'), thick=3
 endif
 
 
-;Vdisp integrated & fits
-;---------------------------
-oplot, [0,max(xfit)], [lin_cte[0], (lin_cte[0]+lin_cte[1]*max(xfit))], thick=7,color=cgColor('Charcoal') ;y=ax+b
-
+;Vdisp integrated
+wr=where(r_vect lt 1.5*re_kpc)
+if wr(0) ne -1  then oplot, r_vect[wr], vdisp_int[wr], psym=-8, symsize=0.5, col=cgcolor('Dark Green')
 
 ;Reff lines
-;----------------------
 oplot, 0.5*[re_kpc, re_kpc], [ylim1, ylim2], line=2, thick=4, Color=cgColor('Dark Grey')
 oplot, [re_kpc, re_kpc], [ylim1, ylim2], line=2, thick=4,Color=cgColor('Dark Grey')
 oplot, 2.0*[re_kpc, re_kpc], [ylim1, ylim2], line=2, thick=4,Color=cgColor('Dark Grey')
@@ -317,7 +352,6 @@ if  2.02*[re_kpc] lt  (max(gal.dis_kpc)+1) then  xyouts, 2.02*[re_kpc, re_kpc], 
 
 
 ;close axis
-;----------------------
 trange=[xlim1, xlim2]/fac
 axis,xaxis=1,xr=trange,xst=1, xtitle='Distance (arcsec)',charsize=1.0
 
@@ -358,12 +392,11 @@ for bb=0, n_elements(bin)-2 do begin &$
         st_vel_low(bb)=-999. & st_vel_up(bb)=-999. &$
    endelse &$
 
-
 endfor 
 
 
 
-;PLOT
+;Plot data
 ;----------------------
 plot, xfit,yfit, psym=8,xtit='Distance (kpc)',ytit='', xr=[xmin, xmax],yr=[ymin,ymax],xstyle=9,ystyle=1,XTICKFORMAT='(F4.1)',position=p4,charsize=1.0, /noerase, /nodata
 oplot, xfit, yfit, psym=8, symsize=0.1, color=cgColor('Gray')
@@ -386,8 +419,7 @@ oplot, bin(wu)+0.5, st_vel_up(wu),col=cgcolor('Deep Pink')
 endif
 
 
-;Reff
-;----------------------
+;Reff lines
 oplot, 0.5*[re_kpc, re_kpc],[ymin*0.9, ymax*1.1] , line=2, thick=4, Color=cgColor('Dark Grey')
 oplot, [re_kpc, re_kpc], [ymin*0.9, ymax*1.1], line=2, thick=4,Color=cgColor('Dark Grey')
 oplot, 2.0*[re_kpc, re_kpc], [ymin*0.9, ymax*1.1], line=2, thick=4,Color=cgColor('Dark Grey')
@@ -397,11 +429,9 @@ if  1.02*[re_kpc] lt (max(gal.dis_kpc)+1)  then  xyouts, 1.02*[re_kpc, re_kpc], 
 if  2.02*[re_kpc] lt  (max(gal.dis_kpc)+1) then  xyouts, 2.02*[re_kpc, re_kpc], [ymax*0.95],'2 Re',  charthick=3, charsize=1,  Color=cgColor('Dark Grey'),  Orientation=-90.0
 
 ;0 axis line
-;--------------
 oplot, [xmin, xmax] , [0,0], line=2, thick=4, Color=cgColor('Dark Grey')
 
-;close axis
-;----------------------
+;close x axis
 trange=[xmin, xmax]/fac
 axis,xaxis=1,xr=trange,xst=1, xtitle='',charsize=1.0
 
