@@ -16,19 +16,21 @@ type='LOGCUBE'
 type1='LOGCUBE-VOR10-GAU-MILESHC'
 type2='MAPS-SPX-GAU-MILESHC'
 
+DR='MPL-6'
 
 
 ;table with galaxy photometry
 tab=mrdfits('/home/helenado/MANGA/catalogues/tab_ser_r_manga_dr14.fits', 1, hdr_tab)
 
+stop
 
 
 ;=====================cilce begins================
 
 
 
-;for i=0, n_elements(tab)-1 do begin
-for i=0, 0 do begin
+for i=708, n_elements(tab)-1 do begin
+;for i=0, 50 do begin
 
 galcount=tab(i).galcount
 name=tab(i).plateifu
@@ -51,7 +53,8 @@ cont_vect=re*[0.5,1.,2.]
 
 ;Read logcube
 ;-------------
-dir='/data3/MANGA/MPL-5/data_cubes/logcube/'
+if DR eq 'MPL-5' then dir='/data3/MANGA/'+DR+'/data_cubes/logcube/'
+if DR eq 'MPL-6'then dir='/data3/MANGA/'+DR+'/datacubes/'
 file='manga-'+strcompress(name, /remove_all)+'-'+type+'.fits.gz'
 
 data1=mrdfits(dir+file, 1, hdr1)    ;flux  + Need  hdr with central ra, dec !!!
@@ -77,9 +80,11 @@ ra0=double(sxpar(hdr1,'OBJRA'))
 dec0=double(sxpar(hdr1,'OBJDEC'))
 
 
+
 ;Read stellar velocity & positions
 ;----------------------------------
-dir2='/data3/MANGA/MPL-5/data_cubes/maps/'
+if DR eq 'MPL-5' then dir2='/data3/MANGA/'+DR+'/data_cubes/maps/'
+if DR eq 'MPL-6' then dir2='/data3/MANGA/'+DR+'/maps/'
 file2='manga-'+strcompress(name, /remove_all)+'-'+type2+'.fits.gz'
 
 tmp_exist = FILE_TEST(dir2+file2) 
@@ -88,22 +93,48 @@ if tmp_exist eq 1 then begin  ; if file doesn't exist skip cicle
 
 spx_coo=mrdfits(dir2+file2, 1, hdr2)  
 stellar_vel=mrdfits(dir2+file2, 15, hdr2)
+stellar_vel_mask=mrdfits(dir2+file2, 17, hdr2)
+
 sigma_manga=mrdfits(dir2+file2, 18, hdr2)
+sigma_manga_mask=mrdfits(dir2+file2, 20, hdr2)
 sigma_corr=mrdfits(dir2+file2, 21, hdr2) 
 
 sigma_manga_corr=sqrt(sigma_manga^2-sigma_corr^2)
-sigma_manga_corr(where(sigma_manga lt sigma_corr))=0
-
-;derive, coord, dis, flux, sn
-;------------------------------------
-coord=dis_pix(dims, hdr1, data1, err)     ;function to derive dis in arcsec
+tmp=where(sigma_manga lt sigma_corr)
+if tmp(0) ne -1 then sigma_manga_corr(tmp)=0  ;avoid imaginary numbers
 
 
 ;Definitions
 ;----------------
-
 vdisp=reform(sigma_manga_corr, dims[0]*dims[1])
 st_vel=reform(stellar_vel, dims[0]*dims[1])
+
+msk_s=reform(sigma_manga_mask, dims[0]*dims[1])
+msk_v=reform(stellar_vel_mask, dims[0]*dims[1])
+
+
+;derive, coord, dis, flux, sn, offset
+;------------------------------------
+
+dir_sav='/home/helenado/MANGA/test_vdisp/panel_mask/sav/'
+file_sav='coord_'+strcompress(name, /remove_all)+'.sav'
+tmp_exist=FILE_TEST(dir_sav+file_sav) 
+
+if tmp_exist eq 0 then begin  ; if file doesn't exist create it
+
+   print,"function coord"
+
+   coord=dis_pix(dims, hdr1, data1, err) ;function to derive dis in arcsec
+
+   dis=reform(coord[*,*,2], dims[0]*dims[1])
+   off=offset(dis,st_vel)                ;function to derive central stellar vel offset
+
+   save, coord, off, filename=dir_sav+file_sav
+
+endif else begin
+ restore, dir_sav+file_sav, /verbose
+endelse
+
 
 ra=reform(coord[*,*,0], dims[0]*dims[1])
 dec=reform(coord[*,*,1], dims[0]*dims[1])
@@ -112,11 +143,8 @@ flux=reform(coord[*,*,3], dims[0]*dims[1])
 sn=reform(coord[*,*,4], dims[0]*dims[1])
 
 
-
 ;correct by offset
 ;---------------
-off=offset(dis,st_vel)   ;function to derive st_vel off
-
 
 if off gt -100 and off lt 100 then begin
 st_vel_corr=st_vel-off
@@ -131,14 +159,17 @@ sig_corr=vdisp*sqrt(1+(st_vel_corr/vdisp)^2)
 
 ;pixels to be plotted
 sn_lim=5.
-sn_lim1=0.
+;sn_lim1=0.
 
-ok1=where(sn gt sn_lim1)  ;all pixels
-ok=where(sn gt sn_lim)    ;sn pixels
+msk_lim=2^5.
 
-ok10=where(sn gt 10)    ;sn pixels
-ok8=where(sn gt 8)    ;sn pixels
-ok6=where(sn gt 6)    ;sn pixels
+ok1=where(sn gt 0 and msk_v lt  msk_lim and msk_s lt msk_lim)  ;all pixels
+ok=where(sn gt sn_lim and msk_v lt  msk_lim and msk_s lt  msk_lim)    ;sn pixels
+
+ok10=where(sn gt 10 and msk_v lt  msk_lim and msk_s lt  msk_lim)    ;sn pixels
+ok8=where(sn gt 8 and msk_v lt  msk_lim and msk_s lt  msk_lim)    ;sn pixels
+ok6=where(sn gt 6 and msk_v lt  msk_lim and msk_s lt  msk_lim)    ;sn pixels
+
 
 
 mvd=median(vdisp(ok))
@@ -147,13 +178,16 @@ std=stdev(vdisp(ok))
 print, "Number pixels ok "
 help, ok1, ok
 
+print, "Min mask V", min(msk_v)
+print, "Min mask Vdisp", min(msk_s)
 
 if n_elements(ok) gt 50 then begin  ;avoid galaxies with less than 50 ok pixels
-if min(st_vel_corr) lt 0. and  max(st_vel_corr) gt 0. then begin ;avoid galaxies with not negative or positive velocities
+if min(st_vel_corr(ok)) lt 0. and  max(st_vel_corr(ok)) gt 0. then begin ;avoid galaxies with not negative or positive velocities
 
 print, 'Empieza plot'
 print, file
 print, '============'
+
 
 
 ;=========== Plot Positions=================
@@ -173,11 +207,11 @@ p4  = [0.6, 0.07, 0.94, 0.45]
 
 
 
-;dir_plot='/home/helenado/MANGA/test_vdisp/panel/'
-dir_plot='/data3/MANGA/MPL-5/plots/all/offset/SN5'
+dir_plot='/home/helenado/MANGA/test_vdisp/panel_mask/'
+;dir_plot='/data3/MANGA/MPL-5/plots/all/offset/SN5'
 
 set_plot,'ps'
-device,filename=dir_plot+'/radial_profile_'+strcompress(name, /remove_all)+'_new.ps'
+device,filename=dir_plot+'/radial_profile_'+strcompress(name, /remove_all)+'_mask_'+DR+'.ps'
 device,xsize=20.0,ysize=20.0,xoffset=0.,yoffset=4.0,/color
 
 ;set_plot, 'X'
@@ -199,14 +233,20 @@ x(where(ra lt ra0))=-x(where(ra lt ra0)) ;include negative sqrt
 nan=(where(finite(x) eq 0))
 
 
+
 if nan(0) ne -1 then  begin
 
 print,"NAN values xpos"
 xx=fltarr(n_elements(nan))
+
 for n=0, n_elements(nan)-1 do begin
    tmp=where(y eq y(nan(n)))
-   tmp2=where(finite(x(tmp)) eq 0)
-   xx(n)=(x(tmp(tmp2+1))+x(tmp(tmp2-1)))/2.
+   if n_elements(tmp) gt 2 then begin
+      tmp2=where(finite(x(tmp)) eq 0)
+      xx(n)=(x(tmp(tmp2+1))+x(tmp(tmp2-1)))/2.
+      endif else begin
+     xx(n)=0
+     endelse
 endfor
 
 x(nan)=xx
@@ -305,8 +345,8 @@ xyouts, [0.5*xlim2, 0.5*xlim2],[ylim2*1.2, ylim2*1.2], 'z='+strcompress(STRING(t
 
 ;Definitions
 ;----------------
-bad=where(st_vel eq min(st_vel))  ; min values are too small! Probably associated to error
-good=where(st_vel ne min(st_vel) and sn gt sn_lim)
+bad=where(st_vel eq min(st_vel) and  msk_v lt  msk_lim)  ; min values are too small! Probably associated to error
+good=where(st_vel ne min(st_vel) and sn gt sn_lim and msk_v lt  msk_lim)
 
 xplot=x(good)
 yplot=y(good)
@@ -343,12 +383,20 @@ m_pa=tan((90-alpha)*2*!pi/360)
 
 
 ;PA from Manga
+if DR eq 'MPL-5' then begin
 dir2='/data3/MANGA/MPL-5/data_cubes/maps/'
-file2='manga-'+strcompress(name, /remove_all)+'-MAPS-SPX-GAU-MILESHC.fits.gz'
-
 tmp=mrdfits(dir2+file2, 0, hdr)
 str=strsplit(hdr(78), /extract, "   ")
 alpha_mang=float(str(2))
+endif
+
+if DR eq 'MPL-6' then dir2='/data3/MANGA/'+DR+'/maps/'
+file2='manga-'+strcompress(name, /remove_all)+'-MAPS-SPX-GAU-MILESHC.fits.gz'
+
+tmp=mrdfits(dir2+file2, 0, hdr)
+;str=strsplit(hdr(78), /extract, "   ")
+alpha_mang=sxpar(hdr,'ECOOPA')
+
 
  
 m_mang=tan((90-alpha_mang)*2*!pi/360)
@@ -413,7 +461,7 @@ xyouts, [xlim1*0.9,xlim1*0.9],[ylim2*0.6, ylim2*0.6], 'PA_mang='+strcompress(STR
 ; velocity dispersion
 ;=================================
 
-ok_vd=where(vdisp gt 0.5 and vdisp lt mvd+3*std and vdisp lt 400. and st_vel ne min(st_vel) and sn gt sn_lim)
+ok_vd=where(vdisp gt 0.5 and vdisp lt mvd+3*std and vdisp lt 400. and st_vel ne min(st_vel) and sn gt sn_lim and msk_s lt msk_lim)
 
 print, "veldips fit"
 help, ok, ok_vd
@@ -439,7 +487,7 @@ vdisp_int_corr=fltarr(n_elements(r_vect))
 
 for rr=0, n_elements(r_vect)-1 do begin
        
-   p=where(dis_kpc le r_vect[rr] and vdisp gt 40. and vdisp lt mvd+3*std and sn gt sn_lim)
+   p=where(dis_kpc le r_vect[rr] and vdisp gt 40. and vdisp lt mvd+3*std and sn gt sn_lim  and msk_s lt msk_lim)
 
    num=0
    den=0
@@ -476,7 +524,7 @@ plot,xfit, yfit, psym=8,xtit='',ytit='', xr=[xlim1, xlim2],yr=[ylim1, ylim2],xst
 ;plot mean
 POLYFILL, [xmean,reverse(xmean)] ,[yper68, reverse(yper32)], color=cgColor('RYB3')
 oplot,dis_kpc(ok), vdisp(ok), psym=8, symsize=0.1, color=cgColor('Light Gray')
-oplot,dis_kpc(ok10), vdisp(ok10), psym=8, symsize=0.1, color=cgColor('Orange')
+if ok10(0) ne -1 then oplot,dis_kpc(ok10), vdisp(ok10), psym=8, symsize=0.1, color=cgColor('Orange')
 
 
 if n_elements(xmean) gt 1 then begin
